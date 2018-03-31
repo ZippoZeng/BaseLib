@@ -5,7 +5,7 @@ def cfg = rootProject.ext.configuration // 配置
 def libs = rootProject.ext.libraries // 库
 
 // 使用 git commit 总数作为 version code
-def gitVersionCode() {
+def gitBuildVersion() {
     def cmd = 'git rev-list HEAD --first-parent --count'
     cmd.execute().text.trim().toInteger()
 }
@@ -35,7 +35,9 @@ android {
         targetSdkVersion cfg.targetSdk
         versionCode 1
         versionName "1.0"
+        buildConfigField 'int', 'BUILD_VERSION', '' + gitBuildVersion()
     }
+
     buildTypes {
         debug {
             // 为了不和 release 版本冲突
@@ -46,17 +48,32 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    flavorDimensions "default"
+    productFlavors {// 集成到demo里面
+        zippoapk {// 集成到乐播自己的APP里面
+            dimension "default"
+        }
+        zippotest {
+            dimension "default"
+        }
+    }
+
     applicationVariants.all { variant ->
         if (variant.buildType.name.equals('release')) {
-            variant.mergedFlavor.versionCode = gitVersionCode()
-            variant.mergedFlavor.versionName = gitVersionTag()
+        }
+        variant.outputs.all { output ->
+            String newName = "BaseLibDemo-" + variant.flavorName + "-" + variant.buildType.name + "-v" + defaultConfig.versionName + "(build " + gitBuildVersion() + ").apk"
+            outputFileName  = newName
         }
     }
 
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:26.+'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+//    implementation project(path: ':lib', configuration: 'release')
+//    implementation project(path: ':lib', configuration: 'default')
+//    implementation project(':lib')
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
 }
